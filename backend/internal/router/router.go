@@ -9,18 +9,24 @@ import (
 
 	"pocketploy/internal/config"
 	"pocketploy/internal/database"
+	"pocketploy/internal/docker"
 	appHandlers "pocketploy/internal/handlers"
 	"pocketploy/internal/middleware"
+	"pocketploy/internal/services"
 )
 
 // New creates a new router with all routes configured
-func New(cfg *config.Config, db *database.DB) http.Handler {
+func New(cfg *config.Config, db *database.DB, dockerClient *docker.Client) http.Handler {
 	r := mux.NewRouter()
+
+	// Initialize services
+	instanceService := services.NewInstanceService(db.DB, dockerClient, cfg)
 
 	// Initialize handlers
 	healthHandler := appHandlers.NewHealthHandler(db)
 	authHandler := appHandlers.NewAuthHandler(cfg, db)
 	userHandler := appHandlers.NewUserHandler(db)
+	instanceHandler := appHandlers.NewInstanceHandler(instanceService)
 
 	// Health check routes (no auth required)
 	r.HandleFunc("/health", healthHandler.Health).Methods("GET")
@@ -46,6 +52,14 @@ func New(cfg *config.Config, db *database.DB) http.Handler {
 	users.Use(middleware.Auth(cfg))
 	users.HandleFunc("/me", userHandler.GetMe).Methods("GET")
 	users.HandleFunc("/me", userHandler.UpdateMe).Methods("PATCH")
+
+	// Instance routes (auth required)
+	instances := api.PathPrefix("/instances").Subrouter()
+	instances.Use(middleware.Auth(cfg))
+	instances.HandleFunc("", instanceHandler.CreateInstance).Methods("POST")
+	instances.HandleFunc("", instanceHandler.ListInstances).Methods("GET")
+	instances.HandleFunc("/{id}", instanceHandler.GetInstance).Methods("GET")
+	instances.HandleFunc("/{id}", instanceHandler.DeleteInstance).Methods("DELETE")
 
 	// Apply logging middleware
 	loggedRouter := middleware.Logging(r)

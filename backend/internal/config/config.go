@@ -35,6 +35,17 @@ type Config struct {
 
 	// Bcrypt Configuration
 	BcryptCost int
+
+	// Docker Configuration
+	DockerHost      string
+	DockerNetwork   string
+	PocketBaseImage string
+	TraefikNetwork  string
+
+	// Instance Configuration
+	LocalIP             string
+	InstancesBasePath   string
+	MaxInstancesPerUser int
 }
 
 // Load reads configuration from environment variables
@@ -69,6 +80,17 @@ func Load() (*Config, error) {
 
 		// Bcrypt Configuration
 		BcryptCost: getEnvAsInt("BCRYPT_COST", 12),
+
+		// Docker Configuration
+		DockerHost:      getEnv("DOCKER_HOST", "unix:///var/run/docker.sock"),
+		DockerNetwork:   getEnv("DOCKER_NETWORK", "pocketploy-network"),
+		PocketBaseImage: getEnv("POCKETBASE_IMAGE", "ghcr.io/muchobien/pocketbase:latest"),
+		TraefikNetwork:  getEnv("TRAEFIK_NETWORK", "pocketploy-network"),
+
+		// Instance Configuration
+		LocalIP:             getEnv("LOCAL_IP", "127.0.0.1"),
+		InstancesBasePath:   getEnv("INSTANCES_BASE_PATH", "./instances"),
+		MaxInstancesPerUser: getEnvAsInt("MAX_INSTANCES_PER_USER", 5),
 	}
 
 	// Validate required fields

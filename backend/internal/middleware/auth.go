@@ -13,6 +13,7 @@ import (
 type contextKey string
 
 const UserIDKey contextKey = "user_id"
+const UserClaimsKey contextKey = "user_claims"
 
 // Auth middleware validates JWT token and adds user ID to context
 func Auth(cfg *config.Config) func(http.Handler) http.Handler {
@@ -41,8 +42,9 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Add user ID to context
+			// Add user ID and full claims to context
 			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, UserClaimsKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -52,6 +54,12 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 func GetUserID(r *http.Request) (string, bool) {
 	userID, ok := r.Context().Value(UserIDKey).(string)
 	return userID, ok
+}
+
+// GetUserClaims extracts full user claims from request context
+func GetUserClaims(r *http.Request) (*utils.Claims, bool) {
+	claims, ok := r.Context().Value(UserClaimsKey).(*utils.Claims)
+	return claims, ok
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {

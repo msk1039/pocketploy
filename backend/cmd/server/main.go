@@ -12,6 +12,7 @@ import (
 
 	"pocketploy/internal/config"
 	"pocketploy/internal/database"
+	"pocketploy/internal/docker"
 	"pocketploy/internal/router"
 )
 
@@ -33,8 +34,17 @@ func main() {
 
 	log.Println("Database connection established")
 
+	// Initialize Docker client
+	dockerClient, err := docker.NewClient(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize Docker client: %v", err)
+	}
+	defer dockerClient.Close()
+
+	log.Println("Docker client initialized")
+
 	// Create router with all routes
-	handler := router.New(cfg, db)
+	handler := router.New(cfg, db, dockerClient)
 
 	// Configure HTTP server
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
