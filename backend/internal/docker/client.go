@@ -29,6 +29,7 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithHost(cfg.DockerHost),
+		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
@@ -147,7 +148,7 @@ func (c *Client) StopContainer(ctx context.Context, containerID string) error {
 func (c *Client) RemoveContainer(ctx context.Context, containerID string) error {
 	removeOptions := container.RemoveOptions{
 		Force:         true,
-		RemoveVolumes: false, // We keep the data volume
+		RemoveVolumes: true, // Clean up Docker volumes to save disk space
 	}
 
 	if err := c.cli.ContainerRemove(ctx, containerID, removeOptions); err != nil {
@@ -196,6 +197,87 @@ func (c *Client) GetContainerStatus(ctx context.Context, containerID string) (st
 		return "running", nil
 	}
 	return "stopped", nil
+}
+
+// GetContainerLogs retrieves logs from a container
+func (c *Client) GetContainerLogs(ctx context.Context, containerID string, tail string) (string, error) {
+	options := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Tail:       tail, // e.g., "100" for last 100 lines, "all" for all logs
+		Timestamps: true,
+	}
+
+	reader, err := c.cli.ContainerLogs(ctx, containerID, options)
+	if err != nil {
+		return "", fmt.Errorf("failed to get container logs: %w", err)
+	}
+	defer reader.Close()
+
+	logs, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to read logs: %w", err)
+	}
+
+	return string(logs), nil
+}
+
+// StartContainer starts a stopped container
+func (c *Client) StartContainer(ctx context.Context, containerID string) error {
+	if err := c.cli.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
+		return fmt.Errorf("failed to start container: %w", err)
+	}
+
+	log.Printf("Started container: %s", containerID)
+	return nil
+}
+
+// RestartContainer restarts a container
+func (c *Client) RestartContainer(ctx context.Context, containerID string) error {
+	timeout := 10 // seconds
+	stopOptions := container.StopOptions{
+		Timeout: &timeout,
+	}
+
+	if err := c.cli.ContainerRestart(ctx, containerID, stopOptions); err != nil {
+		return fmt.Errorf("failed to restart container: %w", err)
+	}
+
+	log.Printf("Restarted container: %s", containerID)
+	return nil
+}
+
+// GetContainerStats retrieves container statistics
+func (c *Client) GetContainerStats(ctx context.Context, containerID string) (*ContainerStats, error) {
+	containerJSON, err := c.cli.ContainerInspect(ctx, containerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inspect container: %w", err)
+	}
+
+	stats := &ContainerStats{
+		ContainerID: containerID,
+		Status:      "stopped",
+		Health:      "unknown",
+		StartedAt:   "",
+		CreatedAt:   containerJSON.Created,
+	}
+
+	if containerJSON.State.Running {
+		stats.Status = "running"
+		stats.StartedAt = containerJSON.State.StartedAt
+		stats.Health = "healthy" // PocketBase doesn't have built-in health checks
+	}
+
+	return stats, nil
+}
+
+// ContainerStats holds container statistics
+type ContainerStats struct {
+	ContainerID string `json:"container_id"`
+	Status      string `json:"status"`
+	Health      string `json:"health"`
+	StartedAt   string `json:"started_at"`
+	CreatedAt   string `json:"created_at"`
 }
 
 // buildTraefikLabels creates the necessary Traefik labels for routing

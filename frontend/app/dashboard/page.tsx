@@ -5,6 +5,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InstancesManager } from "@/components/instances/InstancesManager";
 import { LogOut, User, Mail, Calendar, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -149,43 +150,8 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          {/* Phase 2 Placeholder */}
-          <Card>
-            <CardHeader>
-              <CardTitle>PocketBase Instances</CardTitle>
-              <CardDescription>
-                Manage your PocketBase database instances
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                  <svg
-                    className="h-6 w-6 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                    />
-                  </svg>
-                </div>
-                <h3 className="mt-4 text-lg font-medium text-gray-900">
-                  No instances yet
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  Instance creation will be available in Phase 2
-                </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Coming soon: Create and manage isolated PocketBase instances
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* PocketBase Instances Manager */}
+          <InstancesManager />
 
           {/* Authentication Status Card */}
           <Card className="bg-green-50 border-green-200">

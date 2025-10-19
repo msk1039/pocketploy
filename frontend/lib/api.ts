@@ -9,6 +9,13 @@ import {
   UserResponse,
   ErrorResponse,
 } from "@/types/auth";
+import {
+  CreateInstanceRequest,
+  CreateInstanceResponse,
+  ListInstancesResponse,
+  GetInstanceResponse,
+  DeleteInstanceResponse,
+} from "@/types/instance";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
@@ -198,6 +205,133 @@ export async function checkDatabaseHealth(): Promise<{
     "/health/db",
     {
       method: "GET",
+    }
+  );
+}
+
+// Instance API functions
+
+export async function createInstance(
+  data: CreateInstanceRequest
+): Promise<CreateInstanceResponse> {
+  return fetchAPI<CreateInstanceResponse>("/instances", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getAccessToken()}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listInstances(): Promise<ListInstancesResponse> {
+  return fetchAPI<ListInstancesResponse>("/instances", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${getAccessToken()}`,
+    },
+  });
+}
+
+export async function getInstance(id: string): Promise<GetInstanceResponse> {
+  return fetchAPI<GetInstanceResponse>(`/instances/${id}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${getAccessToken()}`,
+    },
+  });
+}
+
+export async function deleteInstance(
+  id: string
+): Promise<DeleteInstanceResponse> {
+  return fetchAPI<DeleteInstanceResponse>(`/instances/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${getAccessToken()}`,
+    },
+  });
+}
+
+export async function getInstanceLogs(
+  id: string,
+  tail: string = "100"
+): Promise<{ success: boolean; logs: string }> {
+  return fetchAPI<{ success: boolean; logs: string }>(
+    `/instances/${id}/logs?tail=${tail}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+      },
+    }
+  );
+}
+
+export async function getInstanceStats(id: string): Promise<{
+  success: boolean;
+  stats: {
+    container_id: string;
+    status: string;
+    health: string;
+    started_at: string;
+    created_at: string;
+  };
+}> {
+  return fetchAPI<{
+    success: boolean;
+    stats: {
+      container_id: string;
+      status: string;
+      health: string;
+      started_at: string;
+      created_at: string;
+    };
+  }>(`/instances/${id}/stats`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${getAccessToken()}`,
+    },
+  });
+}
+
+export async function startInstance(
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchAPI<{ success: boolean; message: string }>(
+    `/instances/${id}/start`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+      },
+    }
+  );
+}
+
+export async function stopInstance(
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchAPI<{ success: boolean; message: string }>(
+    `/instances/${id}/stop`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+      },
+    }
+  );
+}
+
+export async function restartInstance(
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchAPI<{ success: boolean; message: string }>(
+    `/instances/${id}/restart`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+      },
     }
   );
 }

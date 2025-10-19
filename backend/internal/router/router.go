@@ -60,6 +60,11 @@ func New(cfg *config.Config, db *database.DB, dockerClient *docker.Client) http.
 	instances.HandleFunc("", instanceHandler.ListInstances).Methods("GET")
 	instances.HandleFunc("/{id}", instanceHandler.GetInstance).Methods("GET")
 	instances.HandleFunc("/{id}", instanceHandler.DeleteInstance).Methods("DELETE")
+	instances.HandleFunc("/{id}/logs", instanceHandler.GetInstanceLogs).Methods("GET")
+	instances.HandleFunc("/{id}/stats", instanceHandler.GetInstanceStats).Methods("GET")
+	instances.HandleFunc("/{id}/start", instanceHandler.StartInstance).Methods("POST")
+	instances.HandleFunc("/{id}/stop", instanceHandler.StopInstance).Methods("POST")
+	instances.HandleFunc("/{id}/restart", instanceHandler.RestartInstance).Methods("POST")
 
 	// Apply logging middleware
 	loggedRouter := middleware.Logging(r)

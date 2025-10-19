@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"pocketploy/internal/config"
 	"pocketploy/internal/docker"
@@ -79,7 +81,7 @@ func (s *InstanceService) CreateInstance(ctx context.Context, req CreateInstance
 	// Generate storage path
 	storagePath := s.generateStoragePath(req.Username, slug)
 
-	// Create instance in database with pending status
+	// Create instance in database with creating status
 	instance := &models.Instance{}
 	err = instance.Create(ctx, s.db, models.CreateInstanceParams{
 		UserID:        req.UserID,
@@ -88,8 +90,8 @@ func (s *InstanceService) CreateInstance(ctx context.Context, req CreateInstance
 		Subdomain:     subdomain,
 		ContainerID:   nil,
 		ContainerName: &containerName,
-		Status:        models.InstanceStatusPending,
-		StoragePath:   storagePath,
+		Status:        models.InstanceStatusCreating,
+		DataPath:      storagePath,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance in database: %w", err)
@@ -162,7 +164,7 @@ func (s *InstanceService) GetInstance(ctx context.Context, instanceID, userID uu
 	return instance, nil
 }
 
-// DeleteInstance deletes an instance and its container
+// DeleteInstance archives an instance and removes its container (keeps data for 30 days)
 func (s *InstanceService) DeleteInstance(ctx context.Context, instanceID, userID uuid.UUID) error {
 	// Get the instance
 	instance, err := models.FindInstanceByID(ctx, s.db, instanceID)
@@ -173,6 +175,26 @@ func (s *InstanceService) DeleteInstance(ctx context.Context, instanceID, userID
 	// Verify the instance belongs to the user
 	if instance.UserID != userID {
 		return fmt.Errorf("instance not found")
+	}
+
+	// Calculate data directory size for metadata
+	dataSizeMB := 0
+	if instance.DataPath != "" {
+		if info, err := os.Stat(instance.DataPath); err == nil {
+			dataSizeMB = int(info.Size() / 1024 / 1024) // Convert to MB
+		}
+	}
+
+	// Archive the instance (moves to instances_archive table)
+	_, err = models.ArchiveInstance(ctx, s.db, models.ArchiveInstanceParams{
+		Instance:          instance,
+		DeletedByUserID:   userID,
+		DeletionReason:    "manual",
+		DataSizeMB:        dataSizeMB,
+		DataRetentionDays: 30, // Keep data for 30 days
+	})
+	if err != nil {
+		return fmt.Errorf("failed to archive instance: %w", err)
 	}
 
 	// Stop and remove the container if it exists
@@ -192,10 +214,137 @@ func (s *InstanceService) DeleteInstance(ctx context.Context, instanceID, userID
 		}
 	}
 
-	// Mark instance as deleted in database
+	// Delete instance from main table (it's now in archive)
 	err = instance.Delete(ctx, s.db)
 	if err != nil {
-		return fmt.Errorf("failed to delete instance: %w", err)
+		return fmt.Errorf("failed to delete instance from main table: %w", err)
+	}
+
+	// Keep data folder for 30 days (don't delete yet)
+	// A background job will clean up expired data based on data_retained_until
+	fmt.Printf("Instance archived: %s (data retained until %s)\n",
+		instance.Name,
+		time.Now().AddDate(0, 0, 30).Format("2006-01-02"))
+
+	return nil
+}
+
+// GetInstanceLogs retrieves logs from an instance's container
+func (s *InstanceService) GetInstanceLogs(ctx context.Context, instanceID, userID uuid.UUID, tail string) (string, error) {
+	instance, err := s.GetInstance(ctx, instanceID, userID)
+	if err != nil {
+		return "", err
+	}
+
+	if instance.ContainerID == nil || *instance.ContainerID == "" {
+		return "", fmt.Errorf("instance has no container")
+	}
+
+	logs, err := s.dockerClient.GetContainerLogs(ctx, *instance.ContainerID, tail)
+	if err != nil {
+		return "", fmt.Errorf("failed to get container logs: %w", err)
+	}
+
+	return logs, nil
+}
+
+// GetInstanceStats retrieves statistics for an instance
+func (s *InstanceService) GetInstanceStats(ctx context.Context, instanceID, userID uuid.UUID) (*docker.ContainerStats, error) {
+	instance, err := s.GetInstance(ctx, instanceID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if instance.ContainerID == nil || *instance.ContainerID == "" {
+		return nil, fmt.Errorf("instance has no container")
+	}
+
+	stats, err := s.dockerClient.GetContainerStats(ctx, *instance.ContainerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container stats: %w", err)
+	}
+
+	return stats, nil
+}
+
+// StartInstance starts a stopped instance
+func (s *InstanceService) StartInstance(ctx context.Context, instanceID, userID uuid.UUID) error {
+	instance, err := s.GetInstance(ctx, instanceID, userID)
+	if err != nil {
+		return err
+	}
+
+	if instance.ContainerID == nil || *instance.ContainerID == "" {
+		return fmt.Errorf("instance has no container")
+	}
+
+	if instance.Status == models.InstanceStatusRunning {
+		return fmt.Errorf("instance is already running")
+	}
+
+	err = s.dockerClient.StartContainer(ctx, *instance.ContainerID)
+	if err != nil {
+		return fmt.Errorf("failed to start container: %w", err)
+	}
+
+	// Update status
+	err = instance.UpdateStatus(ctx, s.db, models.InstanceStatusRunning)
+	if err != nil {
+		return fmt.Errorf("failed to update instance status: %w", err)
+	}
+
+	return nil
+}
+
+// StopInstance stops a running instance
+func (s *InstanceService) StopInstance(ctx context.Context, instanceID, userID uuid.UUID) error {
+	instance, err := s.GetInstance(ctx, instanceID, userID)
+	if err != nil {
+		return err
+	}
+
+	if instance.ContainerID == nil || *instance.ContainerID == "" {
+		return fmt.Errorf("instance has no container")
+	}
+
+	if instance.Status == models.InstanceStatusStopped {
+		return fmt.Errorf("instance is already stopped")
+	}
+
+	err = s.dockerClient.StopContainer(ctx, *instance.ContainerID)
+	if err != nil {
+		return fmt.Errorf("failed to stop container: %w", err)
+	}
+
+	// Update status
+	err = instance.UpdateStatus(ctx, s.db, models.InstanceStatusStopped)
+	if err != nil {
+		return fmt.Errorf("failed to update instance status: %w", err)
+	}
+
+	return nil
+}
+
+// RestartInstance restarts an instance
+func (s *InstanceService) RestartInstance(ctx context.Context, instanceID, userID uuid.UUID) error {
+	instance, err := s.GetInstance(ctx, instanceID, userID)
+	if err != nil {
+		return err
+	}
+
+	if instance.ContainerID == nil || *instance.ContainerID == "" {
+		return fmt.Errorf("instance has no container")
+	}
+
+	err = s.dockerClient.RestartContainer(ctx, *instance.ContainerID)
+	if err != nil {
+		return fmt.Errorf("failed to restart container: %w", err)
+	}
+
+	// Update status
+	err = instance.UpdateStatus(ctx, s.db, models.InstanceStatusRunning)
+	if err != nil {
+		return fmt.Errorf("failed to update instance status: %w", err)
 	}
 
 	return nil
