@@ -35,9 +35,11 @@ func NewInstanceService(db *sqlx.DB, dockerClient *docker.Client, cfg *config.Co
 
 // CreateInstanceRequest represents the request to create a new instance
 type CreateInstanceRequest struct {
-	UserID   uuid.UUID
-	Username string
-	Name     string
+	UserID        uuid.UUID
+	Username      string
+	Name          string
+	AdminEmail    string
+	AdminPassword string
 }
 
 // CreateInstanceResponse represents the response after creating an instance
@@ -104,6 +106,8 @@ func (s *InstanceService) CreateInstance(ctx context.Context, req CreateInstance
 		StoragePath:   storagePath,
 		Username:      req.Username,
 		InstanceSlug:  slug,
+		AdminEmail:    req.AdminEmail,
+		AdminPassword: req.AdminPassword,
 	})
 
 	if err != nil {

@@ -40,6 +40,8 @@ export interface ArchivedInstance {
 // Instance API Request types
 export interface CreateInstanceRequest {
   name: string;
+  admin_email: string;
+  admin_password: string;
 }
 
 // Instance API Response types

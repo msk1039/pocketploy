@@ -26,7 +26,9 @@ func NewInstanceHandler(instanceService *services.InstanceService) *InstanceHand
 
 // CreateInstanceRequest represents the request to create a new instance
 type CreateInstanceRequest struct {
-	Name string `json:"name" validate:"required,min=3,max=100"`
+	Name          string `json:"name" validate:"required,min=3,max=100"`
+	AdminEmail    string `json:"admin_email" validate:"required,email"`
+	AdminPassword string `json:"admin_password" validate:"required,min=10"`
 }
 
 // CreateInstance handles POST /api/v1/instances
@@ -63,11 +65,28 @@ func (h *InstanceHandler) CreateInstance(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if req.AdminEmail == "" {
+		respondWithError(w, http.StatusBadRequest, "Admin email is required")
+		return
+	}
+
+	if req.AdminPassword == "" {
+		respondWithError(w, http.StatusBadRequest, "Admin password is required")
+		return
+	}
+
+	if len(req.AdminPassword) < 10 {
+		respondWithError(w, http.StatusBadRequest, "Admin password must be at least 10 characters")
+		return
+	}
+
 	// Create instance
 	result, err := h.instanceService.CreateInstance(r.Context(), services.CreateInstanceRequest{
-		UserID:   userID,
-		Username: claims.Username,
-		Name:     req.Name,
+		UserID:        userID,
+		Username:      claims.Username,
+		Name:          req.Name,
+		AdminEmail:    req.AdminEmail,
+		AdminPassword: req.AdminPassword,
 	})
 
 	if err != nil {

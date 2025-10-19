@@ -40,13 +40,13 @@ export function InstanceMetadata({ instance }: InstanceMetadataProps) {
   };
 
   const handleCopyUrl = () => {
-    const url = `http://${instance.subdomain}`;
+    const url = `http://${instance.subdomain}/_/`;
     navigator.clipboard.writeText(url);
     toast.success("URL copied to clipboard!");
   };
 
   const handleOpenInstance = () => {
-    const url = `http://${instance.subdomain}`;
+    const url = `http://${instance.subdomain}/_/`;
     window.open(url, "_blank");
   };
 
@@ -71,7 +71,7 @@ export function InstanceMetadata({ instance }: InstanceMetadataProps) {
           </div>
           <div className="flex items-center gap-2">
             <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-sm break-all">
-              http://{instance.subdomain}
+              http://{instance.subdomain}/_/
             </code>
             <Button
               variant="outline"

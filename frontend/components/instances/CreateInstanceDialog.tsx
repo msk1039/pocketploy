@@ -24,6 +24,8 @@ interface CreateInstanceDialogProps {
 export function CreateInstanceDialog({ onInstanceCreated }: CreateInstanceDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,14 +39,33 @@ export function CreateInstanceDialog({ onInstanceCreated }: CreateInstanceDialog
       return;
     }
 
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(adminEmail)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate password
+    if (adminPassword.length < 10) {
+      setError("Admin password must be at least 10 characters");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await createInstance({ name });
+      const response = await createInstance({ 
+        name, 
+        admin_email: adminEmail, 
+        admin_password: adminPassword 
+      });
       toast.success("Instance created successfully!", {
         description: `Access at: ${response.url}`,
       });
       setName("");
+      setAdminEmail("");
+      setAdminPassword("");
       setOpen(false);
       onInstanceCreated();
     } catch (error: any) {
@@ -72,7 +93,7 @@ export function CreateInstanceDialog({ onInstanceCreated }: CreateInstanceDialog
           <DialogHeader>
             <DialogTitle>Create PocketBase Instance</DialogTitle>
             <DialogDescription>
-              Create a new isolated PocketBase database instance. You can create up to 5 instances.
+              Create a new isolated PocketBase database instance with admin credentials. You can create up to 5 instances.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -92,6 +113,40 @@ export function CreateInstanceDialog({ onInstanceCreated }: CreateInstanceDialog
                 Letters, numbers, spaces, hyphens, and underscores allowed (3-100 characters)
               </p>
             </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="adminEmail">Admin Email</Label>
+              <Input
+                id="adminEmail"
+                type="email"
+                placeholder="admin@example.com"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                disabled={loading}
+                required
+              />
+              <p className="text-sm text-gray-500">
+                Email for the PocketBase admin account
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="adminPassword">Admin Password</Label>
+              <Input
+                id="adminPassword"
+                type="password"
+                placeholder="Enter a secure password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                disabled={loading}
+                required
+                minLength={10}
+              />
+              <p className="text-sm text-gray-500">
+                Password must be at least 10 characters
+              </p>
+            </div>
+
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
                 {error}

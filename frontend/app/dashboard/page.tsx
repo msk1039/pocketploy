@@ -154,7 +154,7 @@ function DashboardContent() {
           <InstancesManager />
 
           {/* Authentication Status Card */}
-          <Card className="bg-green-50 border-green-200">
+          {/* <Card className="bg-green-50 border-green-200">
             <CardContent className="pt-6">
               <div className="flex items-center space-x-3">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -169,7 +169,7 @@ function DashboardContent() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </main>
     </div>

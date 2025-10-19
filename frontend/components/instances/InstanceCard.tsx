@@ -51,13 +51,13 @@ export function InstanceCard({ instance, onDelete }: InstanceCardProps) {
   };
 
   const handleCopyUrl = () => {
-    const url = `http://${instance.subdomain}`;
+    const url = `http://${instance.subdomain}/_`;
     navigator.clipboard.writeText(url);
     toast.success("URL copied to clipboard!");
   };
 
   const handleOpenInstance = () => {
-    const url = `http://${instance.subdomain}`;
+    const url = `http://${instance.subdomain}/_/`;
     window.open(url, "_blank");
   };
 
@@ -130,12 +130,12 @@ export function InstanceCard({ instance, onDelete }: InstanceCardProps) {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">URL:</span>
             <a
-              href={`http://${instance.subdomain}`}
+              href={`http://${instance.subdomain}/_/`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline flex items-center gap-1 truncate max-w-xs"
             >
-              {instance.subdomain}
+              {instance.subdomain}/_/
               <ExternalLink className="h-3 w-3 flex-shrink-0" />
             </a>
           </div>

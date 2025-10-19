@@ -55,6 +55,8 @@ type ContainerConfig struct {
 	StoragePath   string
 	Username      string
 	InstanceSlug  string
+	AdminEmail    string
+	AdminPassword string
 }
 
 // CreatePocketBaseContainer creates and starts a new PocketBase container with Traefik labels
@@ -69,10 +71,25 @@ func (c *Client) CreatePocketBaseContainer(ctx context.Context, cfg ContainerCon
 		return "", fmt.Errorf("failed to pull image: %w", err)
 	}
 
+	// Create entrypoint script that sets up admin and starts server
+	entrypointScript := fmt.Sprintf(`#!/bin/sh
+set -e
+echo "Setting up PocketBase superuser..."
+/usr/local/bin/pocketbase superuser upsert %s %s || true
+echo "Starting PocketBase server..."
+exec /usr/local/bin/pocketbase serve --http=0.0.0.0:8090
+`, cfg.AdminEmail, cfg.AdminPassword)
+
+	// Write entrypoint script to storage directory
+	entrypointPath := filepath.Join(cfg.StoragePath, "entrypoint.sh")
+	if err := os.WriteFile(entrypointPath, []byte(entrypointScript), 0755); err != nil {
+		return "", fmt.Errorf("failed to create entrypoint script: %w", err)
+	}
+
 	// Prepare container configuration
 	containerConfig := &container.Config{
-		Image: c.config.PocketBaseImage,
-		Cmd:   []string{"serve", "--http=0.0.0.0:8090"},
+		Image:      c.config.PocketBaseImage,
+		Entrypoint: []string{"/pb_data/entrypoint.sh"},
 		ExposedPorts: nat.PortSet{
 			"8090/tcp": struct{}{},
 		},
