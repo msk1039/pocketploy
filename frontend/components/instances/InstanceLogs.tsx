@@ -17,16 +17,19 @@ export function InstanceLogs({ instanceId }: InstanceLogsProps) {
   const [tail, setTail] = useState("100");
   const [autoRefresh, setAutoRefresh] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (shouldScroll = false) => {
     setLoading(true);
     try {
       const response = await getInstanceLogs(instanceId, tail);
       setLogs(response.logs);
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+      // Only auto-scroll if explicitly requested (not on initial load)
+      if (shouldScroll) {
+        setTimeout(() => {
+          logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
     } catch (error: any) {
       console.error("Failed to fetch logs:", error);
       toast.error("Failed to load logs", {
@@ -38,7 +41,9 @@ export function InstanceLogs({ instanceId }: InstanceLogsProps) {
   };
 
   useEffect(() => {
-    fetchLogs();
+    // Don't scroll on initial mount
+    fetchLogs(false);
+    isInitialMount.current = false;
   }, [instanceId, tail]);
 
   // Auto-refresh logs every 5 seconds if enabled
@@ -46,14 +51,16 @@ export function InstanceLogs({ instanceId }: InstanceLogsProps) {
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {
-      fetchLogs();
+      // Scroll to bottom on auto-refresh
+      fetchLogs(true);
     }, 5000);
 
     return () => clearInterval(interval);
   }, [autoRefresh, instanceId, tail]);
 
   const handleRefresh = () => {
-    fetchLogs();
+    // Scroll to bottom on manual refresh
+    fetchLogs(true);
     toast.info("Refreshing logs...");
   };
 

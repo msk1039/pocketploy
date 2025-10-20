@@ -3,7 +3,14 @@
 import { Instance } from "@/types/instance";
 import { InstanceCard } from "./InstanceCard";
 import { Loader2, Database } from "lucide-react";
-
+import {
+  Frame,
+  FrameDescription,
+  FrameFooter,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from "@/components/coss-ui/frame"
 interface InstancesListProps {
   instances: Instance[];
   loading: boolean;
@@ -36,6 +43,11 @@ export function InstancesList({ instances, loading, onDelete }: InstancesListPro
   }
 
   return (
+    <Frame>
+      <FrameHeader>
+    <FrameTitle>Title</FrameTitle>
+    <FrameDescription>Description</FrameDescription>
+  </FrameHeader>
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {instances.map((instance) => (
         <InstanceCard
@@ -45,5 +57,6 @@ export function InstancesList({ instances, loading, onDelete }: InstancesListPro
         />
       ))}
     </div>
+    </Frame>
   );
 }

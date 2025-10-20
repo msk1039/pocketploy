@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/coss-ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2 } from "lucide-react";
@@ -82,11 +82,11 @@ export function CreateInstanceDialog({ onInstanceCreated }: CreateInstanceDialog
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+      <DialogTrigger render={<Button className="flex items-center gap-2" />}>
+       
           <Plus className="h-4 w-4" />
           Create Instance
-        </Button>
+
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>

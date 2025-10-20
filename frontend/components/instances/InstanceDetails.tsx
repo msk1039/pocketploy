@@ -46,7 +46,7 @@ export function InstanceDetails({ instanceId }: InstanceDetailsProps) {
   };
 
   const handleBack = () => {
-    router.push("/dashboard");
+    router.push("/dashboard/instances");
   };
 
   const handleInstanceUpdated = () => {

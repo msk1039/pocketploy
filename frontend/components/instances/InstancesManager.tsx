@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Instance } from "@/types/instance";
 import { listInstances } from "@/lib/api";
 import { CreateInstanceDialog } from "./CreateInstanceDialog";
-import { InstancesList } from "./InstancesList";
+import { InstancesListFrame } from "./InstancesListFrame";
 import { DeleteInstanceDialog } from "./DeleteInstanceDialog";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -97,10 +97,11 @@ export function InstancesManager() {
       </div>
 
       {/* Instances List */}
-      <InstancesList
+      <InstancesListFrame
         instances={instances}
         loading={loading}
         onDelete={handleDelete}
+        onInstanceUpdated={fetchInstances}
       />
 
       {/* Delete Confirmation Dialog */}

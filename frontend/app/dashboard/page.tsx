@@ -1,185 +1,177 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { InstancesManager } from "@/components/instances/InstancesManager";
-import { LogOut, User, Mail, Calendar, CheckCircle } from "lucide-react";
-import { toast } from "sonner";
-
-function DashboardContent() {
-  const { user, logout } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("Logged out successfully");
-    } catch (error) {
-      toast.error("Logout failed");
-    }
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getInitials = (username: string) => {
-    return username.substring(0, 2).toUpperCase();
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold text-gray-900">pocketploy</h1>
-            </div>
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="flex items-center space-x-2"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Sign out</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          {/* Welcome Section */}
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-blue-600 text-white text-xl">
-                {user?.username ? getInitials(user.username) : "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                Welcome back, {user?.username}!
-              </h2>
-              <p className="text-gray-600 mt-1">
-                Your pocketploy dashboard
-              </p>
-            </div>
-          </div>
-
-          {/* User Information Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Account Information</span>
-              </CardTitle>
-              <CardDescription>
-                Your account details and authentication status
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <User className="h-4 w-4" />
-                    <span className="font-medium">Username</span>
-                  </div>
-                  <p className="text-lg font-semibold">{user?.username}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <Mail className="h-4 w-4" />
-                    <span className="font-medium">Email</span>
-                  </div>
-                  <p className="text-lg font-semibold">{user?.email}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <Calendar className="h-4 w-4" />
-                    <span className="font-medium">Account Created</span>
-                  </div>
-                  <p className="text-sm">{formatDate(user?.created_at)}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <Calendar className="h-4 w-4" />
-                    <span className="font-medium">Last Login</span>
-                  </div>
-                  <p className="text-sm">{formatDate(user?.last_login_at)}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium">Account Status</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        user?.is_active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {user?.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <span className="font-medium">User ID</span>
-                  </div>
-                  <p className="text-xs font-mono text-gray-600">{user?.id}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* PocketBase Instances Manager */}
-          <InstancesManager />
-
-          {/* Authentication Status Card */}
-          {/* <Card className="bg-green-50 border-green-200">
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-3">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-                <div>
-                  <p className="font-semibold text-green-900">
-                    Authentication Successful!
-                  </p>
-                  <p className="text-sm text-green-700">
-                    Your JWT authentication is working correctly. Tokens are being
-                    automatically refreshed.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card> */}
-        </div>
-      </main>
-    </div>
-  );
-}
+import { Button } from "@/components/ui/button";
+import { Database, Plus, Archive, User, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { listInstances } from "@/lib/api";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [instanceCount, setInstanceCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInstanceCount = async () => {
+      try {
+        const response = await listInstances();
+        setInstanceCount(response.instances?.length || 0);
+      } catch (error) {
+        console.error("Failed to fetch instances:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInstanceCount();
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
   return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {getGreeting()}, {user?.username}!
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Welcome to your PocketPloy dashboard. Manage your PocketBase instances with ease.
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      {/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Instances
+            </CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : instanceCount}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Active PocketBase instances
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Available Slots
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : 5 - instanceCount}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Out of 5 maximum instances
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Quick Actions
+            </CardTitle>
+            <Plus className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => router.push("/dashboard/create")}
+              className="w-full mt-2"
+              size="sm"
+            >
+              Create Instance
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Account
+            </CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => router.push("/dashboard/profile")}
+              variant="outline"
+              className="w-full mt-2"
+              size="sm"
+            >
+              View Profile
+            </Button>
+          </CardContent>
+        </Card>
+      </div> */}
+
+      {/* Quick Links */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push("/dashboard/instances")}>
+          <CardHeader>
+            <Database className="h-8 w-8 mb-2 text-blue-600" />
+            <CardTitle>View All Instances</CardTitle>
+            <CardDescription>
+              Manage and monitor your PocketBase instances
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push("/dashboard/archived")}>
+          <CardHeader>
+            <Archive className="h-8 w-8 mb-2 text-gray-600" />
+            <CardTitle>Archived Instances</CardTitle>
+            <CardDescription>
+              View your deleted instances and restore data
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Getting Started */}
+      {/* {instanceCount === 0 && !loading && (
+        <Card className="border-dashed border-2">
+          <CardHeader>
+            <CardTitle>Get Started</CardTitle>
+            <CardDescription>
+              You haven't created any instances yet. Let's get you started!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">Steps to create your first instance:</h4>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                <li>Click on "Create Instance" or navigate to the Create page</li>
+                <li>Enter a name for your instance</li>
+                <li>Set up admin credentials (email and password)</li>
+                <li>Click create and wait for the instance to be ready</li>
+                <li>Access your PocketBase admin panel via the generated URL</li>
+              </ol>
+            </div>
+            <Button onClick={() => router.push("/dashboard/create")} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Your First Instance
+            </Button>
+          </CardContent>
+        </Card>
+      )} */}
+    </div>
   );
 }
