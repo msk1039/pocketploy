@@ -298,31 +298,16 @@ type ContainerStats struct {
 }
 
 // buildTraefikLabels creates the necessary Traefik labels for routing
-// In development (HTTP): simple routing without HTTPS
-// In production (HTTPS): routing with TLS and redirects
+// Traefik only handles HTTP routing - SSL is terminated at Nginx in production
 func (c *Client) buildTraefikLabels(cfg ContainerConfig) map[string]string {
 	routerName := cfg.ContainerName
-	labels := map[string]string{
+	return map[string]string{
 		"traefik.enable": "true",
 		fmt.Sprintf("traefik.http.routers.%s.rule", routerName):                      fmt.Sprintf("Host(`%s`)", cfg.Subdomain),
 		fmt.Sprintf("traefik.http.routers.%s.entrypoints", routerName):               "web",
 		fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", routerName): "8090",
 		"traefik.docker.network": c.config.TraefikNetwork,
 	}
-
-	// Add HTTPS configuration only in production
-	if c.config.Env == "production" {
-		// Add redirect middleware for HTTP -> HTTPS
-		labels[fmt.Sprintf("traefik.http.routers.%s.middlewares", routerName)] = fmt.Sprintf("%s-redirect", routerName)
-		labels[fmt.Sprintf("traefik.http.middlewares.%s-redirect.redirectscheme.scheme", routerName)] = "https"
-
-		// Add HTTPS router
-		labels[fmt.Sprintf("traefik.http.routers.%s-secure.rule", routerName)] = fmt.Sprintf("Host(`%s`)", cfg.Subdomain)
-		labels[fmt.Sprintf("traefik.http.routers.%s-secure.entrypoints", routerName)] = "websecure"
-		labels[fmt.Sprintf("traefik.http.routers.%s-secure.tls", routerName)] = "true"
-	}
-
-	return labels
 }
 
 // pullImageIfNeeded pulls the PocketBase image if it's not already present
