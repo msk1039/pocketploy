@@ -131,8 +131,12 @@ func (s *InstanceService) CreateInstance(ctx context.Context, req CreateInstance
 		return nil, fmt.Errorf("failed to update instance status: %w", err)
 	}
 
-	// Generate the full URL
-	url := fmt.Sprintf("http://%s", subdomain)
+	// Generate the full URL based on environment
+	protocol := "http"
+	if s.config.Env == "production" {
+		protocol = "https"
+	}
+	url := fmt.Sprintf("%s://%s", protocol, subdomain)
 
 	return &CreateInstanceResponse{
 		Instance: instance,
@@ -396,7 +400,7 @@ func (s *InstanceService) generateSlug(name string) string {
 
 // generateSubdomain creates the full subdomain for the instance
 func (s *InstanceService) generateSubdomain(username, slug string) string {
-	return fmt.Sprintf("%s-%s.%s.nip.io", username, slug, s.config.LocalIP)
+	return fmt.Sprintf("%s-%s.%s", username, slug, s.config.BaseDomain)
 }
 
 // generateContainerName creates a unique container name

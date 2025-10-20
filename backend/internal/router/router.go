@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -69,9 +70,15 @@ func New(cfg *config.Config, db *database.DB, dockerClient *docker.Client) http.
 	// Apply logging middleware
 	loggedRouter := middleware.Logging(r)
 
+	// Parse allowed origins (comma-separated string to slice)
+	allowedOrigins := strings.Split(cfg.AllowedOrigins, ",")
+	for i := range allowedOrigins {
+		allowedOrigins[i] = strings.TrimSpace(allowedOrigins[i])
+	}
+
 	// Apply CORS middleware
 	corsRouter := handlers.CORS(
-		handlers.AllowedOrigins([]string{cfg.AllowedOrigins}),
+		handlers.AllowedOrigins(allowedOrigins),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 		handlers.AllowCredentials(),

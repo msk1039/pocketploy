@@ -43,7 +43,7 @@ type Config struct {
 	TraefikNetwork  string
 
 	// Instance Configuration
-	LocalIP             string
+	BaseDomain          string
 	InstancesBasePath   string
 	MaxInstancesPerUser int
 }
@@ -88,7 +88,7 @@ func Load() (*Config, error) {
 		TraefikNetwork:  getEnv("TRAEFIK_NETWORK", "pocketploy-network"),
 
 		// Instance Configuration
-		LocalIP:             getEnv("LOCAL_IP", "127.0.0.1"),
+		BaseDomain:          getEnv("BASE_DOMAIN", "127.0.0.1.nip.io"),
 		InstancesBasePath:   getEnv("INSTANCES_BASE_PATH", "./instances"),
 		MaxInstancesPerUser: getEnvAsInt("MAX_INSTANCES_PER_USER", 5),
 	}

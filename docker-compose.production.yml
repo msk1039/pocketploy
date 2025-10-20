@@ -1,0 +1,22 @@
+version: '3.8'
+
+networks:
+  pocketploy-network:
+    external: true
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: pocketploy-traefik
+    restart: unless-stopped
+    ports:
+      - "8090:80"      # HTTP (will redirect to HTTPS)
+      - "8091:443"     # HTTPS
+      - "8081:8081"    # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.production.yml:/etc/traefik/traefik.yml:ro
+    networks:
+      - pocketploy-network
+    labels:
+      - "traefik.enable=true"

@@ -1,0 +1,26 @@
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+  traefik:
+    address: ":8081"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    network: "pocketploy-network"
+    exposedByDefault: false
+    watch: true
+
+api:
+  dashboard: true
+  insecure: true
+
+log:
+  level: INFO
