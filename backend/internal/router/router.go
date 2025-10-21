@@ -10,23 +10,19 @@ import (
 
 	"pocketploy/internal/config"
 	"pocketploy/internal/database"
-	"pocketploy/internal/docker"
 	appHandlers "pocketploy/internal/handlers"
 	"pocketploy/internal/middleware"
 	"pocketploy/internal/services"
 )
 
 // New creates a new router with all routes configured
-func New(cfg *config.Config, db *database.DB, dockerClient *docker.Client) http.Handler {
+func New(cfg *config.Config, db *database.DB, authService *services.AuthService, userService *services.UserService, tokenService *services.TokenService, instanceService *services.InstanceService) http.Handler {
 	r := mux.NewRouter()
 
-	// Initialize services
-	instanceService := services.NewInstanceService(db.DB, dockerClient, cfg)
-
-	// Initialize handlers
+	// Initialize handlers with services (thin controllers)
 	healthHandler := appHandlers.NewHealthHandler(db)
-	authHandler := appHandlers.NewAuthHandler(cfg, db)
-	userHandler := appHandlers.NewUserHandler(db)
+	authHandler := appHandlers.NewAuthHandler(authService)
+	userHandler := appHandlers.NewUserHandler(userService)
 	instanceHandler := appHandlers.NewInstanceHandler(instanceService)
 
 	// Health check routes (no auth required)

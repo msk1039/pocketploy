@@ -13,7 +13,9 @@ import (
 	"pocketploy/internal/config"
 	"pocketploy/internal/database"
 	"pocketploy/internal/docker"
+	"pocketploy/internal/repositories"
 	"pocketploy/internal/router"
+	"pocketploy/internal/services"
 )
 
 func main() {
@@ -43,8 +45,23 @@ func main() {
 
 	log.Println("Docker client initialized")
 
+	// Initialize repositories (Data Access Layer)
+	userRepo := repositories.NewUserRepository(db)
+	tokenRepo := repositories.NewTokenRepository(db)
+	// instanceRepo := repositories.NewInstanceRepository(db) // Will be used in Phase 3.4
+
+	log.Println("Repositories initialized")
+
+	// Initialize services (Business Logic Layer)
+	authService := services.NewAuthService(userRepo, tokenRepo, cfg)
+	userService := services.NewUserService(userRepo, cfg)
+	tokenService := services.NewTokenService(tokenRepo, cfg)
+	instanceService := services.NewInstanceService(db.DB, dockerClient, cfg)
+
+	log.Println("Services initialized")
+
 	// Create router with all routes
-	handler := router.New(cfg, db, dockerClient)
+	handler := router.New(cfg, db, authService, userService, tokenService, instanceService)
 
 	// Configure HTTP server
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)

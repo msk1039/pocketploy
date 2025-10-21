@@ -191,13 +191,7 @@ export function InstancesListFrame({
 
   return (
     <>
-      <Frame>
-        <FrameHeader>
-          <FrameTitle>Your PocketBase Instances</FrameTitle>
-          <FrameDescription>
-            Manage your database instances ({instances.length}/5)
-          </FrameDescription>
-        </FrameHeader>
+    
         <FramePanel>
           <div className="divide-y">
             {instances.map((instance) => {
@@ -359,7 +353,7 @@ export function InstancesListFrame({
             })}
           </div>
         </FramePanel>
-      </Frame>
+      
 
       {/* Stop Confirmation Dialog */}
       <Dialog open={stopDialogOpen} onOpenChange={setStopDialogOpen}>
@@ -431,6 +425,7 @@ export function InstancesListFrame({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
     </>
   );
 }

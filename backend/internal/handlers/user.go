@@ -1,26 +1,23 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strings"
-	"time"
 
-	"pocketploy/internal/database"
 	"pocketploy/internal/middleware"
 	"pocketploy/internal/models"
+	"pocketploy/internal/services"
 	"pocketploy/internal/utils"
 )
 
 // UserHandler handles user-related endpoints
 type UserHandler struct {
-	db *database.DB
+	userService *services.UserService
 }
 
 // NewUserHandler creates a new user handler
-func NewUserHandler(db *database.DB) *UserHandler {
-	return &UserHandler{db: db}
+func NewUserHandler(userService *services.UserService) *UserHandler {
+	return &UserHandler{userService: userService}
 }
 
 // GetMe returns the current user's profile
@@ -32,15 +29,16 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user from database
-	var user models.User
-	err := h.db.Get(&user, "SELECT * FROM users WHERE id = $1", userID)
+	// Call service to get user profile
+	user, err := h.userService.GetUserProfile(userID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			respondWithError(w, http.StatusNotFound, "User not found")
-			return
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "user not found" {
+			statusCode = http.StatusNotFound
+		} else if err.Error() == "account is inactive" {
+			statusCode = http.StatusUnauthorized
 		}
-		respondWithError(w, http.StatusInternalServerError, "Database error")
+		respondWithError(w, statusCode, err.Error())
 		return
 	}
 
@@ -61,6 +59,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse request
 	var req models.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request body")
@@ -80,73 +79,33 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build update query dynamically
-	updates := []string{}
-	args := []interface{}{}
-	argCount := 1
-
-	if req.Username != "" {
-		req.Username = strings.ToLower(strings.TrimSpace(req.Username))
-
-		// Check if username is already taken
-		var existingID string
-		err := h.db.Get(&existingID, "SELECT id FROM users WHERE username = $1 AND id != $2", req.Username, userID)
-		if err != sql.ErrNoRows {
-			if err == nil {
-				respondWithError(w, http.StatusConflict, "Username already exists")
-				return
-			}
-		}
-
-		updates = append(updates, "username = $"+string(rune('0'+argCount)))
-		args = append(args, req.Username)
-		argCount++
-	}
-
-	if req.Email != "" {
-		req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-
-		// Check if email is already taken
-		var existingID string
-		err := h.db.Get(&existingID, "SELECT id FROM users WHERE email = $1 AND id != $2", req.Email, userID)
-		if err != sql.ErrNoRows {
-			if err == nil {
-				respondWithError(w, http.StatusConflict, "Email already exists")
-				return
-			}
-		}
-
-		updates = append(updates, "email = $"+string(rune('0'+argCount)))
-		args = append(args, req.Email)
-		argCount++
-	}
-
-	if len(updates) == 0 {
+	// Check if there are any fields to update
+	if req.Username == "" && req.Email == "" {
 		respondWithError(w, http.StatusBadRequest, "No fields to update")
 		return
 	}
 
-	// Add updated_at
-	updates = append(updates, "updated_at = $"+string(rune('0'+argCount)))
-	args = append(args, time.Now().UTC())
-	argCount++
-
-	// Add user ID for WHERE clause
-	args = append(args, userID)
-
-	// Execute update
-	query := "UPDATE users SET " + strings.Join(updates, ", ") + " WHERE id = $" + string(rune('0'+argCount))
-	_, err := h.db.Exec(query, args...)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to update user")
-		return
+	// Prepare update parameters
+	params := services.UpdateProfileParams{}
+	if req.Username != "" {
+		params.Username = &req.Username
+	}
+	if req.Email != "" {
+		params.Email = &req.Email
 	}
 
-	// Get updated user
-	var user models.User
-	err = h.db.Get(&user, "SELECT * FROM users WHERE id = $1", userID)
+	// Call service to update user profile
+	user, err := h.userService.UpdateUserProfile(userID, params)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to fetch updated user")
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "username already exists" || err.Error() == "email already exists" {
+			statusCode = http.StatusConflict
+		} else if err.Error() == "user not found" {
+			statusCode = http.StatusNotFound
+		} else if err.Error() == "account is inactive" {
+			statusCode = http.StatusUnauthorized
+		}
+		respondWithError(w, statusCode, err.Error())
 		return
 	}
 

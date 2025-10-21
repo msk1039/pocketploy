@@ -9,12 +9,22 @@ import { DeleteInstanceDialog } from "./DeleteInstanceDialog";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Frame,
+  FrameDescription,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from "@/components/coss-ui/frame";
 
 export function InstancesManager() {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [instanceToDelete, setInstanceToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [instanceToDelete, setInstanceToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const fetchInstances = async () => {
     setLoading(true);
@@ -75,34 +85,40 @@ export function InstancesManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Your Instances</h2>
-          <p className="text-gray-600 mt-1">
-            Manage your PocketBase database instances ({instances?.length || 0}/5)
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <CreateInstanceDialog onInstanceCreated={fetchInstances} />
-        </div>
-      </div>
 
       {/* Instances List */}
-      <InstancesListFrame
-        instances={instances}
-        loading={loading}
-        onDelete={handleDelete}
-        onInstanceUpdated={fetchInstances}
-      />
+      <Frame>
+        <FrameHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <FrameTitle>Your PocketBase Instances</FrameTitle>
+              <FrameDescription>
+                Manage your database instances ({instances.length}/5)
+              </FrameDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+              <CreateInstanceDialog onInstanceCreated={fetchInstances} />
+            </div>
+          </div>
+        </FrameHeader>
+        <InstancesListFrame
+          instances={instances}
+          loading={loading}
+          onDelete={handleDelete}
+          onInstanceUpdated={fetchInstances}
+        />
+      </Frame>
 
       {/* Delete Confirmation Dialog */}
       <DeleteInstanceDialog
