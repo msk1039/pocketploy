@@ -102,9 +102,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await apiLogin({ email, password });
-      setUser(response.data.user);
-      scheduleTokenRefresh(response.data.expires_at);
-      router.push("/dashboard");
+      
+      // Ensure tokens are properly stored before setting user
+      // This prevents race conditions with the useEffect
+      if (response.data.access_token && response.data.refresh_token) {
+        setUser(response.data.user);
+        scheduleTokenRefresh(response.data.expires_at);
+        router.push("/dashboard");
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -115,10 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (username: string, email: string, password: string) => {
     try {
-      const response = await apiSignup({ username, email, password });
-      setUser(response.data.user);
-      scheduleTokenRefresh(response.data.expires_at);
-      router.push("/dashboard");
+      await apiSignup({ username, email, password });
+      // Clear tokens after signup - user should login
+      clearTokens();
+      setUser(null);
+      // Redirect to login page instead of dashboard
+      router.push("/login");
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.details) {

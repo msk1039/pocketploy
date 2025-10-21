@@ -13,7 +13,14 @@ import {
 import { ExternalLink, MoreVertical, Trash2, Copy, Database, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
+import {
+  Frame,
+  FrameDescription,
+  FrameFooter,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from "@/components/coss-ui/frame"
 interface InstanceCardProps {
   instance: Instance;
   onDelete: (id: string) => void;

@@ -107,10 +107,8 @@ export async function signup(data: SignupRequest): Promise<AuthResponse> {
     body: JSON.stringify(data),
   });
 
-  // Store tokens
-  setAccessToken(response.data.access_token);
-  setRefreshToken(response.data.refresh_token);
-
+  // Don't store tokens on signup - let the login handle it
+  // This is because we redirect to login page after signup
   return response;
 }
 

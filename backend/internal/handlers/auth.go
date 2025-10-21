@@ -109,7 +109,8 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	refreshToken, _, expiresAt, err := h.createRefreshToken(userID, r)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to generate refresh token")
+		// Log the actual error for debugging
+		respondWithError(w, http.StatusInternalServerError, "Failed to create refresh token: "+err.Error())
 		return
 	}
 
@@ -193,7 +194,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	refreshToken, _, expiresAt, err := h.createRefreshToken(user.ID, r)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to generate refresh token")
+		// Log the actual error for debugging
+		respondWithError(w, http.StatusInternalServerError, "Failed to create refresh token: "+err.Error())
 		return
 	}
 
@@ -348,9 +350,38 @@ func (h *AuthHandler) createRefreshToken(userID string, r *http.Request) (string
 	// Get client IP and user agent
 	ipAddress := r.RemoteAddr
 	// Strip port from IP address if present (e.g., "127.0.0.1:54321" -> "127.0.0.1")
+	// Handle both IPv4 and IPv6 addresses
 	if colonIndex := strings.LastIndex(ipAddress, ":"); colonIndex != -1 {
-		ipAddress = ipAddress[:colonIndex]
+		// Check if it's IPv6 (contains multiple colons)
+		if strings.Count(ipAddress, ":") > 1 {
+			// IPv6 address - remove the port after the last ]
+			if bracketIndex := strings.LastIndex(ipAddress, "]"); bracketIndex != -1 {
+				ipAddress = ipAddress[:bracketIndex+1]
+				// Remove brackets for PostgreSQL INET type
+				ipAddress = strings.Trim(ipAddress, "[]")
+			}
+		} else {
+			// IPv4 address
+			ipAddress = ipAddress[:colonIndex]
+		}
 	}
+
+	// Handle X-Forwarded-For header if behind a proxy
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		// Take the first IP in the chain
+		if idx := strings.Index(forwarded, ","); idx != -1 {
+			ipAddress = strings.TrimSpace(forwarded[:idx])
+		} else {
+			ipAddress = strings.TrimSpace(forwarded)
+		}
+	}
+
+	// Fallback to null if IP parsing fails
+	var ipAddressPtr *string
+	if ipAddress != "" && ipAddress != "unknown" {
+		ipAddressPtr = &ipAddress
+	}
+
 	userAgent := r.Header.Get("User-Agent")
 
 	// Store in database
@@ -359,7 +390,7 @@ func (h *AuthHandler) createRefreshToken(userID string, r *http.Request) (string
 		INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at, ip_address, user_agent)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
-	_, err = h.db.Exec(query, tokenID, userID, tokenHash, expiresAt, time.Now().UTC(), ipAddress, userAgent)
+	_, err = h.db.Exec(query, tokenID, userID, tokenHash, expiresAt, time.Now().UTC(), ipAddressPtr, userAgent)
 	if err != nil {
 		return "", "", time.Time{}, err
 	}

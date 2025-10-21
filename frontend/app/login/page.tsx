@@ -33,6 +33,7 @@ export default function LoginPage() {
       toast.success("Login successful!");
       // Redirect is handled by AuthContext
     } catch (error) {
+      console.error("Login error:", error);
       toast.error(error instanceof Error ? error.message : "Login failed");
     } finally {
       setIsLoading(false);

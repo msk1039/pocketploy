@@ -70,9 +70,10 @@ export default function SignupPage() {
 
     try {
       await signup(username, email, password);
-      toast.success("Account created successfully!");
+      toast.success("Account created successfully! Please log in.");
       // Redirect is handled by AuthContext
     } catch (error) {
+      console.error("Signup error:", error);
       toast.error(error instanceof Error ? error.message : "Signup failed");
     } finally {
       setIsLoading(false);
